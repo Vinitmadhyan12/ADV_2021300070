@@ -1,0 +1,6 @@
+# Observations 1:
+# 1. Bar Chart: the highest revenue is generated from Electronics
+# 2. Pie Chart: The highest revenue-generating region is North America .
+# 3. Histogram: units sold per transaction is mostly one.
+# 4. Timeline Chart: highest sales happened in the month of February.
+# 5. Scatter Plot: There is a positive relationship between the Unit Price and the number of Units Sold..

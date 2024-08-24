@@ -1,0 +1,6 @@
+Line Chart-  US has the most number of confirmed and Deaths cases 
+Area Chart - US has the most number of confirmed and Deaths cases 
+Treemap - WHO Region which the most number of confirmed and Deaths cases is America
+Waterfall Chart - 
+Funnel Chart - 57% of people have recovered
+Donut Chart - Brazil, US, India, Russia all together has more than 50 percentage of total confirmed cases
