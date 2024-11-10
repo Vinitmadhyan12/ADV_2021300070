@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D3.js Finance Visualizations</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .chart {
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 2px 2px 12px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+            padding: 20px;
+            width: 90%; /* Responsive width */
+        }
+        h3 {
+            text-align: center;
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+        .bar {
+            fill: steelblue;
+        }
+        .label {
+            font-size: 12px;
+            fill: black;
+        }
+        .axis-label {
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chart" id="bar-chart"></div>
+    <div class="chart" id="pie-chart"></div>
+    <div class="chart" id="histogram"></div>
+    <div class="chart" id="scatter-plot"></div>
+
+    <script>
+        const data = [
+            { Name: 'Berkshire Hathaway Inc.', MarketCap: 709.361e9, Price: 430000, PE_ratio: 25, EPS: 30 },
+            { Name: 'Visa Inc.', MarketCap: 483.304e9, Price: 230, PE_ratio: 35, EPS: 4 },
+            { Name: 'JPMorgan Chase & Co.', MarketCap: 392.325e9, Price: 160, PE_ratio: 12, EPS: 9 },
+            { Name: 'Mastercard Incorporated', MarketCap: 359.338e9, Price: 350, PE_ratio: 37, EPS: 11 },
+            { Name: 'Bank of America Corp.', MarketCap: 326.427e9, Price: 30, PE_ratio: 11, EPS: 7 },
+            // Add more data as needed
+        ];
+
+        // Function to add title to each chart
+        function addTitle(svg, title) {
+            svg.append("text")
+                .attr("x", 200)
+                .attr("y", 30)
+                .attr("text-anchor", "middle")
+                .style("font-size", "20px")
+                .style("font-weight", "bold")
+                .text(title);
+        }
+
+        // 1. Bar Chart
+        const margin = { top: 60, right: 30, bottom: 40, left: 100 },
+            width = 800 - margin.left - margin.right,
+            height = 400 - margin.top - margin.bottom;
+
+        const barSvg = d3.select("#bar-chart")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const xBar = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.MarketCap)])
+            .range([0, width]);
+
+        const yBar = d3.scaleBand()
+            .range([0, height])
+            .domain(data.map(d => d.Name))
+            .padding(0.1);
+
+        barSvg.selectAll("rect")
+            .data(data)
+            .enter()
+            .append("rect")
+            .attr("x", xBar(0))
+            .attr("y", d => yBar(d.Name))
+            .attr("width", d => xBar(d.MarketCap))
+            .attr("height", yBar.bandwidth())
+            .attr("class", "bar");
+
+        // Adding data labels to bar chart
+        barSvg.selectAll("text")
+            .data(data)
+            .enter()
+            .append("text")
+            .attr("x", d => xBar(d.MarketCap) + 5)
+            .attr("y", d => yBar(d.Name) + yBar.bandwidth() / 2)
+            .text(d => d.MarketCap.toFixed(0))
+            .attr("class", "label")
+            .attr("dominant-baseline", "middle");
+
+        barSvg.append("g")
+            .call(d3.axisLeft(yBar));
+
+        barSvg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(xBar).ticks(5));
+
+        barSvg.append("text")
+            .attr("transform", `translate(${width / 2},${height + margin.bottom - 10})`)
+            .attr("class", "axis-label")
+            .text("Market Cap ($B)");
+
+        addTitle(barSvg, "Bar Chart: Market Cap by Company");
+
+        // 2. Pie Chart
+        const pieWidth = 800, pieHeight = 400, pieRadius = Math.min(pieWidth, pieHeight) / 2;
+
+        const pieSvg = d3.select("#pie-chart")
+            .append("svg")
+            .attr("width", pieWidth)
+            .attr("height", pieHeight)
+            .append("g")
+            .attr("transform", `translate(${pieWidth / 2}, ${pieHeight / 2})`);
+
+        const pie = d3.pie()
+            .value(d => d.MarketCap);
+
+        const pieArc = d3.arc()
+            .innerRadius(0)
+            .outerRadius(pieRadius);
+
+        const color = d3.scaleOrdinal()
+            .domain(data.map(d => d.Name))
+            .range(d3.schemeCategory10);
+
+        pieSvg.selectAll('path')
+            .data(pie(data))
+            .enter()
+            .append('path')
+            .attr('d', pieArc)
+            .attr('fill', d => color(d.data.Name))
+            .attr('stroke', 'white')
+            .style('stroke-width', '2px');
+
+        // Adding data labels to pie chart
+        pieSvg.selectAll('text')
+            .data(pie(data))
+            .enter()
+            .append('text')
+            .attr('transform', d => `translate(${pieArc.centroid(d)})`)
+            .text(d => d.data.Name + ': ' + d.data.MarketCap.toFixed(0))
+            .attr("class", "label")
+            .style("text-anchor", "middle");
+
+        addTitle(pieSvg, "Pie Chart: Market Cap Distribution");
+
+        // 3. Histogram
+        const histWidth = 800, histHeight = 400;
+        const histSvg = d3.select("#histogram")
+            .append("svg")
+            .attr("width", histWidth)
+            .attr("height", histHeight)
+            .append("g")
+            .attr("transform", `translate(50, 20)`);
+
+        const xHist = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.Price)])
+            .range([0, histWidth - 50]);
+
+        const bins = d3.bin()
+            .domain(xHist.domain())
+            .thresholds(10);
+
+        const histogramData = bins(data.map(d => d.Price));
+
+        const yHist = d3.scaleLinear()
+            .domain([0, d3.max(histogramData, d => d.length)])
+            .range([histHeight - 50, 0]);
+
+        histSvg.selectAll("rect")
+            .data(histogramData)
+            .enter()
+            .append("rect")
+            .attr("x", d => xHist(d.x0))
+            .attr("y", d => yHist(d.length))
+            .attr("width", d => xHist(d.x1) - xHist(d.x0) - 1)
+            .attr("height", d => histHeight - 50 - yHist(d.length))
+            .attr("class", "bar");
+
+        // Adding data labels to histogram
+        histSvg.selectAll("text")
+            .data(histogramData)
+            .enter()
+            .append("text")
+            .attr("x", d => xHist(d.x0) + (xHist(d.x1) - xHist(d.x0)) / 2)
+            .attr("y", d => yHist(d.length) - 5)
+            .text(d => d.length)
+            .attr("class", "label")
+            .style("font-size", "10px")
+            .style("text-anchor", "middle");
+
+        histSvg.append("g")
+            .attr("transform", `translate(0, ${histHeight - 50})`)
+            .call(d3.axisBottom(xHist));
+
+        histSvg.append("g")
+            .call(d3.axisLeft(yHist));
+
+        histSvg.append("text")
+            .attr("transform", `translate(${histWidth / 2},${histHeight - 20})`)
+            .attr("class", "axis-label")
+            .text("Price ($)");
+
+        histSvg.append("text")
+            .attr("transform", `translate(20,${histHeight / 2}) rotate(-90)`)
+            .attr("class", "axis-label")
+            .text("Frequency");
+
+        addTitle(histSvg, "Histogram: Price Distribution");
+
+        // 4. Scatter Plot
+        const scatterWidth = 800, scatterHeight = 400;
+        const scatterSvg = d3.select("#scatter-plot")
+            .append("svg")
+            .attr("width", scatterWidth)
+            .attr("height", scatterHeight)
+            .append("g")
+            .attr("transform", `translate(50, 20)`);
+
+        const xScatter = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.Price)])
+            .range([0, scatterWidth - 50]);
+
+        const yScatter = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.PE_ratio)])
+            .range([scatterHeight - 50, 0]);
+
+        scatterSvg.selectAll("circle")
+            .data(data)
+            .enter()
+            .append("circle")
+            .attr("cx", d => xScatter(d.Price))
+            .attr("cy", d => yScatter(d.PE_ratio))
+            .attr("r", 5)
+            .attr("fill", "orange");
+
+        // Adding data labels to scatter plot
+        scatterSvg.selectAll("text")
+            .data(data)
+            .enter()
+            .append("text")
+            .attr("x", d => xScatter(d.Price) + 7)
+            .attr("y", d => yScatter(d.PE_ratio) - 5)
+            .text(d => d.Name)
+            .attr("class", "label")
+            .style("font-size", "10px");
+
+        scatterSvg.append("g")
+            .attr("transform", `translate(0, ${scatterHeight - 50})`)
+            .call(d3.axisBottom(xScatter));
+
+        scatterSvg.append("g")
+            .call(d3.axisLeft(yScatter));
+
+        scatterSvg.append("text")
+            .attr("transform", `translate(${scatterWidth / 2},${scatterHeight - 20})`)
+            .attr("class", "axis-label")
+            .text("Price ($)");
+
+        scatterSvg.append("text")
+            .attr("transform", `translate(20,${scatterHeight / 2}) rotate(-90)`)
+            .attr("class", "axis-label")
+            .text("P/E Ratio");
+
+        addTitle(scatterSvg, "Scatter Plot: Price vs P/E Ratio");
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forest Data Visualizations</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-cloud/build/d3.layout.cloud.js"></script>
+  <style>
+    .chart-container { width: 100%; max-width: 600px; margin: 20px auto; }
+    .description { font-style: italic; text-align: center; margin-top: 10px; color: #555; }
+  </style>
+</head>
+<body>
+  <h1>Forest Data Visualizations</h1>
+  
+  <!-- Line Chart Container for Selected Country -->
+  <div class="chart-container" id="lineChart"></div>
+  <p class="description">The line chart illustrates changes in forest area over time for the selected country.</p>
+
+  <!-- Scatter Plot Container -->
+  <div class="chart-container" id="scatterPlot"></div>
+  <p class="description">The scatter plot shows the relationship between total land area and forest area for each country.</p>
+
+  <!-- Word Cloud Container -->
+  <div class="chart-container" id="wordCloud"></div>
+  <p class="description">The word cloud represents countries by their forest area in 2020. Larger text indicates greater forest area.</p>
+  
+  <!-- Line Chart for Top 10 Countries with Largest Forest Area Over Time -->
+  <div class="chart-container" id="top10LineChart"></div>
+  <p class="description">The line chart shows changes in forest area from 1990 to 2020 for the top 10 countries with the largest forest area in 2020.</p>
+
+  <!-- Bar Chart for Top 10 Countries by Forest Area in 2020 -->
+  <div class="chart-container" id="barChart"></div>
+  <p class="description">The bar chart displays the top 10 countries with the largest forest area in 2020.</p>
+
+  <script>
+    // Load CSV Data
+    d3.csv("Cleaned_Forest_Area.csv").then(data => {
+      // Parse data and fix formatting
+      data.forEach(d => {
+        d.Forest_Area_1990 = +d.Forest_Area_1990;
+        d.Forest_Area_2000 = +d.Forest_Area_2000;
+        d.Forest_Area_2010 = +d.Forest_Area_2010;
+        d.Forest_Area_2015 = +d.Forest_Area_2015;
+        d.Forest_Area_2020 = +d.Forest_Area_2020;
+        d.Total_Land_Area_2020 = +d.Total_Land_Area_2020;
+      });
+
+      const width = 600, height = 400, margin = {top: 20, right: 30, bottom: 40, left: 50};
+
+      // 1. Line Chart of Forest Area Over Time for a Selected Country
+      const lineChartSvg = d3.select("#lineChart").append("svg")
+                             .attr("width", width)
+                             .attr("height", height)
+                             .append("g")
+                             .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const selectedCountry = data[0];  // Choose a specific country for the line chart
+      const years = ["1990", "2000", "2010", "2015", "2020"];
+      const lineData = years.map(year => ({ year: year, area: selectedCountry[`Forest_Area_${year}`] }));
+
+      const xLine = d3.scalePoint().domain(years).range([0, width - margin.left - margin.right]);
+      const yLine = d3.scaleLinear().domain([0, d3.max(lineData, d => d.area)]).range([height - margin.top - margin.bottom, 0]);
+
+      const line = d3.line().x(d => xLine(d.year)).y(d => yLine(d.area));
+
+      lineChartSvg.append("path")
+                  .datum(lineData)
+                  .attr("d", line)
+                  .attr("fill", "none")
+                  .attr("stroke", "steelblue")
+                  .attr("stroke-width", 2);
+
+      // X-axis for line chart
+      lineChartSvg.append("g")
+                  .attr("transform", `translate(0,${height - margin.top - margin.bottom})`)
+                  .call(d3.axisBottom(xLine))
+                  .append("text")
+                  .attr("x", (width - margin.left - margin.right) / 2)
+                  .attr("y", margin.bottom - 10)
+                  .attr("fill", "black")
+                  .style("text-anchor", "middle")
+                  .text("Year");
+
+      // Y-axis for line chart
+      lineChartSvg.append("g")
+                  .call(d3.axisLeft(yLine))
+                  .append("text")
+                  .attr("transform", "rotate(-90)")
+                  .attr("x", -((height - margin.top - margin.bottom) / 2))
+                  .attr("y", -margin.left + 10)
+                  .attr("fill", "black")
+                  .style("text-anchor", "middle")
+                  .text("Forest Area");
+
+      // 2. Scatter Plot of Total Land Area vs. Forest Area
+      const scatterPlotSvg = d3.select("#scatterPlot").append("svg")
+                               .attr("width", width)
+                               .attr("height", height)
+                               .append("g")
+                               .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const xScatter = d3.scaleLinear()
+                         .domain([0, d3.max(data, d => d.Total_Land_Area_2020)])
+                         .range([0, width - margin.left - margin.right]);
+
+      const yScatter = d3.scaleLinear()
+                         .domain([0, d3.max(data, d => d.Forest_Area_2020)])
+                         .range([height - margin.top - margin.bottom, 0]);
+
+      scatterPlotSvg.selectAll("circle")
+                    .data(data)
+                    .enter().append("circle")
+                    .attr("cx", d => xScatter(d.Total_Land_Area_2020))
+                    .attr("cy", d => yScatter(d.Forest_Area_2020))
+                    .attr("r", 5)
+                    .attr("fill", "teal");
+
+      // X-axis for scatter plot
+      scatterPlotSvg.append("g")
+                    .attr("transform", `translate(0,${height - margin.top - margin.bottom})`)
+                    .call(d3.axisBottom(xScatter))
+                    .append("text")
+                    .attr("x", (width - margin.left - margin.right) / 2)
+                    .attr("y", margin.bottom - 10)
+                    .attr("fill", "black")
+                    .style("text-anchor", "middle")
+                    .text("Total Land Area (2020)");
+
+      // Y-axis for scatter plot
+      scatterPlotSvg.append("g")
+                    .call(d3.axisLeft(yScatter))
+                    .append("text")
+                    .attr("transform", "rotate(-90)")
+                    .attr("x", -((height - margin.top - margin.bottom) / 2))
+                    .attr("y", -margin.left + 10)
+                    .attr("fill", "black")
+                    .style("text-anchor", "middle")
+                    .text("Forest Area (2020)");
+
+      // 3. Word Cloud of Country Names by Forest Area in 2020
+      const wordCloudSvg = d3.select("#wordCloud").append("svg")
+                             .attr("width", width)
+                             .attr("height", height);
+
+      const wordCloudData = data.map(d => ({ text: d.Country_Area, size: d.Forest_Area_2020 / 100 }));
+
+      d3.layout.cloud().size([width, height])
+                       .words(wordCloudData)
+                       .padding(5)
+                       .rotate(0)
+                       .fontSize(d => d.size)
+                       .on("end", drawWordCloud)
+                       .start();
+
+      function drawWordCloud(words) {
+        wordCloudSvg.append("g")
+                    .attr("transform", `translate(${width / 2},${height / 2})`)
+                    .selectAll("text")
+                    .data(words)
+                    .enter().append("text")
+                    .style("font-size", d => `${d.size}px`)
+                    .style("fill", d => d3.schemeCategory10[Math.floor(Math.random() * 10)])
+                    .attr("text-anchor", "middle")
+                    .attr("transform", d => `translate(${d.x},${d.y}) rotate(${d.rotate})`)
+                    .text(d => d.text);
+      }
+
+      // 4. Bar Chart for Top 10 Countries by Forest Area in 2020
+      const top10Countries = data.sort((a, b) => b.Forest_Area_2020 - a.Forest_Area_2020).slice(0, 10);
+
+      const barChartSvg = d3.select("#barChart").append("svg")
+                            .attr("width", width)
+                            .attr("height", height)
+                            .append("g")
+                            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const xBar = d3.scaleBand()
+                     .domain(top10Countries.map(d => d.Country_Area))
+                     .range([0, width - margin.left - margin.right])
+                     .padding(0.2);
+
+      const yBar = d3.scaleLinear()
+                     .domain([0, d3.max(top10Countries, d => d.Forest_Area_2020)])
+                     .range([height - margin.top - margin.bottom, 0]);
+
+      barChartSvg.selectAll(".bar")
+                 .data(top10Countries)
+                 .enter().append("rect")
+                 .attr("class", "bar")
+                 .attr("x", d => xBar(d.Country_Area))
+                 .attr("width", xBar.bandwidth())
+                 .attr("y", d => yBar(d.Forest_Area_2020))
+                 .attr("height", d => height - margin.top - margin.bottom - yBar(d.Forest_Area_2020))
+                 .attr("fill", "orange");
+
+      // X-axis for bar chart
+      barChartSvg.append("g")
+                 .attr("transform", `translate(0,${height - margin.top - margin.bottom})`)
+                 .call(d3.axisBottom(xBar))
+                 .selectAll("text")
+                 .attr("transform", "rotate(-45)")
+                 .style("text-anchor", "end");
+
+      // Y-axis for bar chart
+      barChartSvg.append("g")
+                 .call(d3.axisLeft(yBar))
+                 .append("text")
+                 .attr("transform", "rotate(-90)")
+                 .attr("x", -((height - margin.top - margin.bottom) / 2))
+                 .attr("y", -margin.left + 10)
+                 .attr("fill", "black")
+                 .style("text-anchor", "middle")
+                 .text("Forest Area in 2020");
+    });
+  </script>
+</body>
+</html>
